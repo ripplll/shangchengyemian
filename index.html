@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>本地农产品 · 直供</title>
+    <!-- 使用 Tailwind CSS CDN (轻量) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .product-card { transition: transform .2s; }
+        .product-card:active { transform: scale(0.97); }
+    </style>
+</head>
+<body class="bg-gray-50 pb-16">
+
+<!-- 顶部标题 -->
+<div class="sticky top-0 bg-white shadow-sm z-10 p-4 text-center">
+    <h1 class="text-xl font-bold text-green-700">🌾 本地农场直供</h1>
+    <p class="text-xs text-gray-400 mt-1">新鲜采摘 · 当日送达</p>
+</div>
+
+<!-- 商品网格 -->
+<div id="productGrid" class="grid grid-cols-2 gap-3 p-3"></div>
+
+<!-- 底部导航占位 -->
+<div class="fixed bottom-0 w-full bg-white border-t flex justify-around py-2 text-xs text-gray-500">
+    <span>🏠 首页</span>
+    <span>📋 全部商品</span>
+    <span>🛒 购物车</span>
+    <span>👤 我的</span>
+</div>
+
+<script>
+    // ========== ★ 在这里替换你的农产品数据 ==========
+    const products = [
+        {
+            id: 1,
+            name: "红富士苹果",
+            desc: "自家果园种植，不打蜡，脆甜多汁",
+            price: "5.00",
+            unit: "斤",
+            image: "https://via.placeholder.com/300x200/E74C3C/fff?text=🍎"
+        },
+        {
+            id: 2,
+            name: "蛋糕",
+            desc: "手工蛋糕，保证材料优良",
+            price: "35",
+            unit: "块",
+            image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVtzNqM6qnCD170xbAz7Xc_TRjJuZdVwACDyUAAmzboFXaeYAguzgQeDwE.jpeg"
+        },
+        {
+            id: 3,
+            name: "有机小青菜",
+            desc: "清晨采摘，无农药，鲜嫩爽口",
+            price: "3.00",
+            unit: "把",
+            image: "https://via.placeholder.com/300x200/27AE60/fff?text=🥬"
+        },
+        {
+            id: 4,
+            name: "农家蜂蜜",
+            desc: "百花蜜，天然结晶，500g瓶装",
+            price: "38.00",
+            unit: "瓶",
+            image: "https://via.placeholder.com/300x200/D35400/fff?text=🍯"
+        },
+        {
+            id: 5,
+            name: "红薯粉条",
+            desc: "传统手工制作，久煮不烂",
+            price: "12.00",
+            unit: "袋",
+            image: "https://via.placeholder.com/300x200/8E44AD/fff?text=🍜"
+        },
+        {
+            id: 6,
+            name: "新鲜玉米",
+            desc: "甜糯品种，真空包装保鲜",
+            price: "2.00",
+            unit: "根",
+            image: "https://via.placeholder.com/300x200/F1C40F/fff?text=🌽"
+        }
+    ];
+
+    // ========== 渲染商品卡片 ==========
+    function renderProducts() {
+        const grid = document.getElementById('productGrid');
+        grid.innerHTML = '';
+        products.forEach(p => {
+            const card = document.createElement('div');
+            card.className = 'product-card bg-white rounded-xl overflow-hidden shadow-sm cursor-pointer';
+            card.innerHTML = `
+                <img src="${p.image}" alt="${p.name}" class="w-full h-32 object-cover" loading="lazy" />
+                <div class="p-2">
+                    <h3 class="font-semibold text-sm truncate">${p.name}</h3>
+                    <p class="text-xs text-gray-500 line-clamp-2 mt-1">${p.desc}</p>
+                    <div class="flex items-baseline justify-between mt-2">
+                        <span class="text-red-600 font-bold text-base">¥${p.price}</span>
+                        <span class="text-gray-400 text-xs">/${p.unit}</span>
+                    </div>
+                </div>
+            `;
+            // 点击弹出详情（简易弹窗）
+            card.addEventListener('click', () => showDetail(p));
+            grid.appendChild(card);
+        });
+    }
+
+    // ========== 简易详情弹窗 ==========
+    function showDetail(product) {
+        const overlay = document.createElement('div');
+        overlay.className = 'fixed inset-0 bg-black/40 z-20 flex items-end justify-center';
+        overlay.innerHTML = `
+            <div class="bg-white rounded-t-2xl w-full max-w-lg p-6 animate-slide-up">
+                <div class="flex justify-between items-start mb-4">
+                    <h2 class="text-lg font-bold">${product.name}</h2>
+                    <button onclick="this.closest('.fixed').remove()" class="text-gray-400 text-xl">&times;</button>
+                </div>
+                <img src="${product.image}" alt="${product.name}" class="w-full h-48 object-cover rounded-lg mb-4" />
+                <p class="text-gray-600 text-sm mb-4">${product.desc}</p>
+                <div class="flex items-center justify-between">
+                    <span class="text-red-600 text-2xl font-bold">¥${product.price}</span>
+                    <span class="text-gray-400">/ ${product.unit}</span>
+                </div>
+                <button class="mt-6 w-full bg-green-600 text-white py-3 rounded-xl text-lg font-medium">联系购买</button>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        // 添加滑入动画
+        const sheet = document.createElement('style');
+        sheet.textContent = `@keyframes slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } } .animate-slide-up { animation: slide-up 0.3s ease-out; }`;
+        document.head.appendChild(sheet);
+    }
+
+    renderProducts();
+</script>
+</body>
+</html>
