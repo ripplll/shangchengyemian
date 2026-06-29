@@ -8,17 +8,25 @@
     <style>
         .product-card { transition: transform .2s; }
         .product-card:active { transform: scale(0.97); }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .modal-overlay { animation: fadeIn 0.3s ease; }
+        .modal-content { animation: slideUp 0.3s ease-out; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body class="bg-gray-50 pb-16">
 
+<!-- 顶部标题 -->
 <div class="sticky top-0 bg-white shadow-sm z-10 p-4 text-center">
     <h1 class="text-xl font-bold text-green-700">🌾 六盘水农文创直供</h1>
     <p class="text-xs text-gray-400 mt-1">本土特产 · 民族文创</p>
 </div>
 
+<!-- 商品网格 -->
 <div id="productGrid" class="grid grid-cols-2 gap-3 p-3"></div>
 
+<!-- 底部导航占位 -->
 <div class="fixed bottom-0 w-full bg-white border-t flex justify-around py-2 text-xs text-gray-500">
     <span>🏠 首页</span>
     <span>📋 全部商品</span>
@@ -26,278 +34,98 @@
     <span>👤 我的</span>
 </div>
 
+<!-- ==================== 联系弹窗（直接呼电话/加微信） ==================== -->
+<div id="contactModal" class="hidden fixed inset-0 z-30 flex items-end justify-center modal-overlay">
+    <div class="bg-white rounded-t-2xl w-full max-w-lg p-6 modal-content relative">
+        <!-- 关闭按钮 -->
+        <button onclick="closeContactModal()" class="absolute top-4 right-4 text-gray-400 text-2xl leading-none">&times;</button>
+
+        <!-- 商品信息（动态填充） -->
+        <div class="flex items-start space-x-4 mb-4">
+            <img id="modalProductImage" src="" alt="" class="w-24 h-24 object-cover rounded-lg flex-shrink-0" />
+            <div class="min-w-0">
+                <h2 id="modalProductName" class="text-lg font-bold truncate"></h2>
+                <p id="modalProductDesc" class="text-sm text-gray-500 line-clamp-2 mt-1"></p>
+                <div class="flex items-baseline mt-2">
+                    <span id="modalProductPrice" class="text-red-600 font-bold text-lg"></span>
+                    <span id="modalProductUnit" class="text-gray-400 text-xs ml-1"></span>
+                </div>
+            </div>
+        </div>
+
+        <hr class="my-3 border-gray-200" />
+
+        <!-- 联系方式 -->
+        <p class="text-sm font-medium text-gray-700 mb-3">📲 直接联系卖家</p>
+
+        <div class="space-y-3">
+            <!-- 拨打电话按钮 -->
+            <a id="callBtn" href="tel:15066857999" 
+               class="block w-full bg-green-600 text-white py-3 rounded-xl text-lg font-medium text-center hover:bg-green-700 active:scale-[0.98] transition-all">
+                📞 拨打电话：150-6685-7999
+            </a>
+
+            <!-- 复制微信号按钮 -->
+            <button onclick="copyWechat()" 
+                    class="block w-full bg-[#07C160] text-white py-3 rounded-xl text-lg font-medium text-center hover:bg-[#06ad56] active:scale-[0.98] transition-all">
+                💬 复制微信号：WR15066857999
+            </button>
+
+            <!-- 微信二维码（可选，如果以后有二维码图片可以替换 src） -->
+            <div class="text-center text-xs text-gray-400 mt-2">
+                <p>或扫描下方二维码添加微信</p>
+                <img src="https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEWTD9qQgnXVkbE-asvbXXOe92krGSh-wACuyYAAv6GEFZS9JZVrt6H3jwE.jpeg"  alt="微信二维码" class="mx-auto mt-2 w-28 h-28 object-contain" 
+                     onerror="this.style.display='none'" />
+            </div>
+        </div>
+
+        <p class="mt-4 text-xs text-gray-400 text-center">
+            工作日 9:00-21:00 在线 · 六盘水市区可送货
+        </p>
+    </div>
+</div>
+
 <script>
-    // ===== 商品数据（长角苗相关排前，其余在后） =====
+    // ==================== 商品数据（长角苗相关排前，其余在后） ====================
     const products = [
         // ---- 长角苗相关 ----
-        {
-            id: 101,
-            name: "长角苗拼豆",
-            desc: "趣玩民族文化，动手能力极强",
-            price: "29.9",
-            unit: "不限时",
-            image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEV1hxqOA1YPvMAAS9iLeSSTy3FsXAG6MYAAvMjAAKjk8FViOat824V4R88BA.jpg"
-        },
-        {
-            id: 102,
-            name: "长角苗创艺冰箱贴",
-            desc: "把六盘水文化，带入家中生活气息",
-            price: "15",
-            unit: "个",
-            image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEV1iNqOA6WgRKOW8uhjOry-2rFofw9vAAC_CMAAqOTwVULDsnVKoqYiDwE.jpg"
-        },
-        {
-            id: 103,
-            name: "长角苗绘本故事",
-            desc: "手持绘本，了解六盘水文化底蕴，儿童趣读",
-            price: "19.9",
-            unit: "本",
-            image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEV1ihqOA9BD_BEhSgXBCh4voE4OzXvMQACAiQAAqOTwVVSZ66fmxyLWTwE.jpg"
-        },
-        {
-            id: 104,
-            name: "长角苗手账本",
-            desc: "记笔记更有动力，内容丰富",
-            price: "20",
-            unit: "本",
-            image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEV1j9qOBDGDxGTonQLxIlvofVOsH2COwACHyQAAqOTwVXdIMmRtSdwUzwE.jpg"
-        },
-        {
-            id: 105,
-            name: "长角美小勋章",
-            desc: "民族文化底蕴十足，搭配文字服饰跟美观",
-            price: "10",
-            unit: "个",
-            image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEV1llqOBOcVsfVzWzZx6S2ayZNXx4qtAACQCQAAqOTwVV8S4W1OdExAAE8BA.jpg"
-        },
-        {
-            id: 106,
-            name: "长角苗钥匙扣",
-            desc: "搭配各类包包服饰都好看",
-            price: "12",
-            unit: "个",
-            image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEV1lVqOBMLhTq4Ic8CoPREZWdJXJAOKgACPCQAAqOTwVUmmu7eSLb5RDwE.jpg"
-        },
-        {
-            id: 107,
-            name: "长角苗套餐礼包",
-            desc: "四个民族小文创都在其中，美美文化一起带走",
-            price: "57",
-            unit: "套",
-            image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEV1lZqOBMm9WW5cDF3aVssviClVi5VpgACPSQAAqOTwVUxeLnVMd8mHDwE.jpg"
-        },
-        {
-            id: 108,
-            name: "长角苗绘本",
-            desc: "4本系列齐全，深入骨髓了解名族文化",
-            price: "60",
-            unit: "套",
-            image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEV1ihqOA9BD_BEhSgXBCh4voE4OzXvMQACAiQAAqOTwVVSZ66fmxyLWTwE.jpg"
-        },
-        {
-            id: 109,
-            name: "长角苗文创挂扣",
-            desc: "头顶千年族谱，随身一挂苗韵",
-            price: "10",
-            unit: "个",
-            image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEV895qOqhYxjOA9-PQN9ZQZuewL52yQwACGi8AAvQD0VW1YqaAmv9ihTwE.jpg"
-        },
-        {
-            id: 110,
-            name: "长角苗文创手机壳",
-            desc: "一壳藏箐苗，木角载千年",
-            price: "10",
-            unit: "个",
-            image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEV8-xqOqnuHObOvB_Lqtssrsmmi_t14wACSy8AAvQD0VUbgxyTd5oRhzwE.jpg"
-        },
-        {
-            id: 120,
-            name: "长角苗文创手机壳",
-            desc: "梭戛长角苗文创手机壳，把乌蒙苗风带在身边",
-            price: "10",
-            unit: "个",
-            image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEV8-1qOqoP280OhN1ilIfK0ppo7YgERAACTC8AAvQD0VWQ8x_1MInSyzwE.jpg"
-        },
+        { id: 101, name: "长角苗拼豆", desc: "趣玩民族文化，动手能力极强", price: "29.9", unit: "不限时", image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEV1hxqOA1YPvMAAS9iLeSSTy3FsXAG6MYAAvMjAAKjk8FViOat824V4R88BA.jpg" },
+        { id: 102, name: "长角苗创艺冰箱贴", desc: "把六盘水文化，带入家中生活气息", price: "15", unit: "元/个", image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEV1iNqOA6WgRKOW8uhjOry-2rFofw9vAAC_CMAAqOTwVULDsnVKoqYiDwE.jpg" },
+        { id: 103, name: "长角苗绘本故事", desc: "手持绘本，了解六盘水文化底蕴，儿童趣读", price: "19.9", unit: "元/本", image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEV1ihqOA9BD_BEhSgXBCh4voE4OzXvMQACAiQAAqOTwVVSZ66fmxyLWTwE.jpg" },
+        { id: 104, name: "长角苗手账本", desc: "记笔记更有动力，内容丰富", price: "20", unit: "元/本", image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEV1j9qOBDGDxGTonQLxIlvofVOsH2COwACHyQAAqOTwVXdIMmRtSdwUzwE.jpg" },
+        { id: 105, name: "长角美小勋章", desc: "民族文化底蕴十足，搭配文字服饰跟美观", price: "10", unit: "元/个", image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEV1llqOBOcVsfVzWzZx6S2ayZNXx4qtAACQCQAAqOTwVV8S4W1OdExAAE8BA.jpg" },
+        { id: 106, name: "长角苗钥匙扣", desc: "搭配各类包包服饰都好看", price: "12", unit: "元/个", image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEV1lVqOBMLhTq4Ic8CoPREZWdJXJAOKgACPCQAAqOTwVUmmu7eSLb5RDwE.jpg" },
+        { id: 107, name: "长角苗套餐礼包", desc: "四个民族小文创都在其中，美美文化一起带走", price: "57", unit: "元/套", image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEV1lZqOBMm9WW5cDF3aVssviClVi5VpgACPSQAAqOTwVUxeLnVMd8mHDwE.jpg" },
+        { id: 108, name: "长角苗绘本", desc: "4本系列齐全，深入骨髓了解名族文化", price: "60", unit: "元/套", image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEV1ihqOA9BD_BEhSgXBCh4voE4OzXvMQACAiQAAqOTwVVSZ66fmxyLWTwE.jpg" },
+        { id: 109, name: "长角苗文创挂扣", desc: "头顶千年族谱，随身一挂苗韵", price: "10", unit: "元/个", image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEV895qOqhYxjOA9-PQN9ZQZuewL52yQwACGi8AAvQD0VW1YqaAmv9ihTwE.jpg" },
+        { id: 110, name: "长角苗文创手机壳", desc: "一壳藏箐苗，木角载千年", price: "10", unit: "元/个", image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEV8-xqOqnuHObOvB_Lqtssrsmmi_t14wACSy8AAvQD0VUbgxyTd5oRhzwE.jpg" },
+        { id: 120, name: "长角苗文创手机壳", desc: "梭戛长角苗文创手机壳，把乌蒙苗风带在身边", price: "10", unit: "元/个", image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEV8-1qOqoP280OhN1ilIfK0ppo7YgERAACTC8AAvQD0VWQ8x_1MInSyzwE.jpg" },
         // ---- 其他商品 ----
-        {
-            id: 201,
-            name: "六盘水文创冰箱贴",
-            desc: "做工精细，结合扎染技术融入民族文化",
-            price: "15",
-            unit: "个",
-            image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVup9qM-fD8Apqk_lR_X8DuSmOig2qAQACeikAAmzboFXTfkE42u478DwE.jpg"
-        },
-        {
-            id: 202,
-            name: "苗疆少女Kt猫",
-            desc: "民族工仔玩偶新中式挂件",
-            price: "15",
-            unit: "个",
-            image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVurxqM-sYE7GcLVVJEkJvTUhOTFLW5QACmykAAmzboFXxrdcDt0xI7DwE.jpg"
-        },
-        {
-            id: 203,
-            name: "文旅研学旅行团",
-            desc: "探索六盘水文化，传承文化",
-            price: "1800",
-            unit: "一周",
-            image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVus5qM_BW4Bo6Ku3mI6Wjzf-oIX7SmQACuikAAmzboFWkm9AnJN7IZDwE.jpg"
-        },
-        {
-            id: 204,
-            name: "红心猕猴桃",
-            desc: "细腻爽滑，清甜多汁",
-            price: "15",
-            unit: "斤",
-            image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVuuZqM_M5dRE5jarhLKiTxayI895L7QAC1ikAAmzboFXuTvL-XO-PYjwE.jpg"
-        },
-        {
-            id: 205,
-            name: "刺梨",
-            desc: "酸甜可口，新鲜美味",
-            price: "5",
-            unit: "斤",
-            image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVuuVqM_L-bJf65g2dO1WMzDI1XKu9kgAC1SkAAmzboFVcu4BHtuCeRTwE.jpg"
-        },
-        {
-            id: 206,
-            name: "六枝月亮河鸭蛋",
-            desc: "味美多汁，香而不腻",
-            price: "2.5",
-            unit: "个",
-            image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVvMxqNC3iYyLyymyvn7O94waaggLEtQAC4ysAAmzboFWHI6Pz41hTNjwE.jpg"
-        },
-        {
-            id: 207,
-            name: "六盘水岩脚面",
-            desc: "纯手工，面道劲到",
-            price: "12",
-            unit: "斤",
-            image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVvNFqNC6MK0z40CQcfOp0_mlBlJM9dgAC6CsAAmzboFX_K6vpDRBbfjwE.jpg"
-        },
-        {
-            id: 208,
-            name: "落别樱桃",
-            desc: "肥而多汁，味美新鲜",
-            price: "20",
-            unit: "斤",
-            image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVvM5qNC4RmXjYHrcuO6YzRzD1yUXZ6wAC5SsAAmzboFXpwWw7WcLGAjwE.jpg"
-        },
-        {
-            id: 209,
-            name: "六盘水苦荞茶",
-            desc: "茶香四溢，原生态",
-            price: "30",
-            unit: "斤",
-            image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVvNBqNC5dxsRlnnJLsJdhwk28qF0OmwAC5ysAAmzboFV8_oLtOZMU8zwE.jpg"
-        },
-        {
-            id: 210,
-            name: "儿童情商绘本",
-            desc: "情感真实，趣味十足",
-            price: "9.8",
-            unit: "本",
-            image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVvOZqNDKwTwFZHNx36n-3qKacod9vMwACAiwAAmzboFXRHuF-I98u3DwE.jpg"
-        },
-        {
-            id: 211,
-            name: "好习惯养成",
-            desc: "配合孩子养成好习惯，健康成长",
-            price: "10",
-            unit: "本",
-            image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVvOhqNDNTGlmBS2LqEfGTs-HZIiM0DQACBCwAAmzboFUlg6f2J7U4EjwE.jpg"
-        },
-        {
-            id: 212,
-            name: "8套系",
-            desc: "故事情节温馨充满智慧",
-            price: "80",
-            unit: "套",
-            image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVvP1qNDQvcdVu8XTpIIjo_accTynJhQACGSwAAmzboFVQLMClFXry6TwE.jpg"
-        },
-        {
-            id: 213,
-            name: "做更好的自己",
-            desc: "情绪管理与性格培养，有声伴读",
-            price: "100",
-            unit: "册",
-            image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVvQdqNDXCmNRUN3iFa3HhtVdlEZ6BNwACJCwAAmzboFU89eCRLe4KkTwE.jpg"
-        },
-        {
-            id: 214,
-            name: "中国金典故事绘本",
-            desc: "水墨画风  大字注音  有声伴读",
-            price: "200",
-            unit: "册",
-            image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVvQ9qNDZTTbqSTri4En0XvVfkYCbC3QACLCwAAmzboFWQM2FYMqt5xDwE.jpg"
-        },
-        {
-            id: 215,
-            name: "六盘水九层山",
-            desc: "精品绿茶，高档上次，送人",
-            price: "2000",
-            unit: "盒",
-            image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVvTJqNDj9N0Ls76gDGKe8icrYmb_QaQACTywAAmzboFVvfGQ7tznzTTwE.jpg"
-        },
-        {
-            id: 216,
-            name: "盘县火腿",
-            desc: "味道适中，香而不腻",
-            price: "50",
-            unit: "斤",
-            image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVvTlqNDnFzfX43OIKkJdmJR6DOUm5WAACViwAAmzboFVODt6QWf-zCTwE.jpg"
-        },
-        {
-            id: 217,
-            name: "水城春",
-            desc: "茶香四溢",
-            price: "177",
-            unit: "盒",
-            image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVvTtqNDpRHfXPXAeKpWgRWbWxQ1pQWQACWCwAAmzboFVfcu3s3fHedjwE.jpg"
-        },
-        {
-            id: 218,
-            name: "钟山葡萄",
-            desc: "水果甜香",
-            price: "15",
-            unit: "斤",
-            image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVvT1qNDp3U-cJ99Ajw45iDFSNd3vLkQACWiwAAmzboFU9xJMubJav0zwE.jpg"
-        },
-        {
-            id: 219,
-            name: "文创手提包",
-            desc: "文化气韵环绕身边，把文化装入袋中了解更多文化",
-            price: "15",
-            unit: "个",
-            image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEV1ihqOA9BD_BEhSgXBCh4voE4OzXvMQACAiQAAqOTwVVSZ66fmxyLWTwE.jpg"
-        },
-        {
-            id: 220,
-            name: "手账本",
-            desc: "风趣优美，方便携带",
-            price: "15",
-            unit: "本",
-            image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEV89FqOqbtmS2ER_aAuzc5mcgliyUimgAC4i4AAvQD0VWGAr1SKLAYnzwE.jpg"
-        },
-        {
-            id: 221,
-            name: "苗族女孩美欲钥匙扣",
-            desc: "精美挂扣，随身携带",
-            price: "10",
-            unit: "个",
-            image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEV89pqOqelxa2DyjpEPImXlWds_m0QEwAC-i4AAvQD0VUf58iArgGG9zwE.jpg"
-        },
-        {
-            id: 222,
-            name: "苗寨拾光",
-            desc: "木角藏岁月，挑花写流年",
-            price: "18",
-            unit: "本",
-            image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEV8_ZqOqskeuwSsHgqDTuBZkjQyrcYDAACWC8AAvQD0VUMWJ66mzIydTwE.jpg"
-        }
+        { id: 201, name: "六盘水文创冰箱贴", desc: "做工精细，结合扎染技术融入民族文化", price: "15", unit: "元/个", image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVup9qM-fD8Apqk_lR_X8DuSmOig2qAQACeikAAmzboFXTfkE42u478DwE.jpg" },
+        { id: 202, name: "苗疆少女Kt猫", desc: "民族工仔玩偶新中式挂件", price: "15", unit: "元/个", image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVurxqM-sYE7GcLVVJEkJvTUhOTFLW5QACmykAAmzboFXxrdcDt0xI7DwE.jpg" },
+        { id: 203, name: "文旅研学旅行团", desc: "探索六盘水文化，传承文化", price: "1800", unit: "元/一周", image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVus5qM_BW4Bo6Ku3mI6Wjzf-oIX7SmQACuikAAmzboFWkm9AnJN7IZDwE.jpg" },
+        { id: 204, name: "红心猕猴桃", desc: "细腻爽滑，清甜多汁", price: "15", unit: "元/斤", image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVuuZqM_M5dRE5jarhLKiTxayI895L7QAC1ikAAmzboFXuTvL-XO-PYjwE.jpg" },
+        { id: 205, name: "刺梨", desc: "酸甜可口，新鲜美味", price: "5", unit: "元/斤", image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVuuVqM_L-bJf65g2dO1WMzDI1XKu9kgAC1SkAAmzboFVcu4BHtuCeRTwE.jpg" },
+        { id: 206, name: "六枝月亮河鸭蛋", desc: "味美多汁，香而不腻", price: "2.5", unit: "元/个", image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVvMxqNC3iYyLyymyvn7O94waaggLEtQAC4ysAAmzboFWHI6Pz41hTNjwE.jpg" },
+        { id: 207, name: "六盘水岩脚面", desc: "纯手工，面道劲到", price: "12", unit: "斤", image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVvNFqNC6MK0z40CQcfOp0_mlBlJM9dgAC6CsAAmzboFX_K6vpDRBbfjwE.jpg" },
+        { id: 208, name: "落别樱桃", desc: "肥而多汁，味美新鲜", price: "20", unit: "斤", image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVvM5qNC4RmXjYHrcuO6YzRzD1yUXZ6wAC5SsAAmzboFXpwWw7WcLGAjwE.jpg" },
+        { id: 209, name: "六盘水苦荞茶", desc: "茶香四溢，原生态", price: "30", unit: "斤", image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVvNBqNC5dxsRlnnJLsJdhwk28qF0OmwAC5ysAAmzboFV8_oLtOZMU8zwE.jpg" },
+        { id: 210, name: "儿童情商绘本", desc: "情感真实，趣味十足", price: "9.8", unit: "元/本", image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVvOZqNDKwTwFZHNx36n-3qKacod9vMwACAiwAAmzboFXRHuF-I98u3DwE.jpg" },
+        { id: 211, name: "好习惯养成", desc: "配合孩子养成好习惯，健康成长", price: "10", unit: "元/本", image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVvOhqNDNTGlmBS2LqEfGTs-HZIiM0DQACBCwAAmzboFUlg6f2J7U4EjwE.jpg" },
+        { id: 212, name: "8套系", desc: "故事情节温馨充满智慧", price: "80", unit: "元/套", image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVvP1qNDQvcdVu8XTpIIjo_accTynJhQACGSwAAmzboFVQLMClFXry6TwE.jpg" },
+        { id: 213, name: "做更好的自己", desc: "情绪管理与性格培养，有声伴读", price: "100", unit: "元/册", image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVvQdqNDXCmNRUN3iFa3HhtVdlEZ6BNwACJCwAAmzboFU89eCRLe4KkTwE.jpg" },
+        { id: 214, name: "中国金典故事绘本", desc: "水墨画风  大字注音  有声伴读", price: "200", unit: "元/册", image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVvQ9qNDZTTbqSTri4En0XvVfkYCbC3QACLCwAAmzboFWQM2FYMqt5xDwE.jpg" },
+        { id: 215, name: "六盘水九层山", desc: "精品绿茶，高档上次，送人", price: "2000", unit: "元/盒", image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVvTJqNDj9N0Ls76gDGKe8icrYmb_QaQACTywAAmzboFVvfGQ7tznzTTwE.jpg" },
+        { id: 216, name: "盘县火腿", desc: "味道适中，香而不腻", price: "50", unit: "元/斤", image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVvTlqNDnFzfX43OIKkJdmJR6DOUm5WAACViwAAmzboFVODt6QWf-zCTwE.jpg" },
+        { id: 217, name: "水城春", desc: "茶香四溢", price: "177", unit: "元/盒", image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVvTtqNDpRHfXPXAeKpWgRWbWxQ1pQWQACWCwAAmzboFVfcu3s3fHedjwE.jpg" },
+        { id: 218, name: "钟山葡萄", desc: "水果甜香", price: "15", unit: "斤", image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVvT1qNDp3U-cJ99Ajw45iDFSNd3vLkQACWiwAAmzboFU9xJMubJav0zwE.jpg" },
+        { id: 219, name: "文创手提包", desc: "文化气韵环绕身边，把文化装入袋中了解更多文化", price: "15", unit: "元/个", image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEV1ihqOA9BD_BEhSgXBCh4voE4OzXvMQACAiQAAqOTwVVSZ66fmxyLWTwE.jpg" },
+        { id: 220, name: "手账本", desc: "风趣优美，方便携带", price: "15", unit: "元/本", image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEV89FqOqbtmS2ER_aAuzc5mcgliyUimgAC4i4AAvQD0VWGAr1SKLAYnzwE.jpg" },
+        { id: 221, name: "苗族女孩美欲钥匙扣", desc: "精美挂扣，随身携带", price: "10", unit: "元/个", image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEV89pqOqelxa2DyjpEPImXlWds_m0QEwAC-i4AAvQD0VUf58iArgGG9zwE.jpg" },
+        { id: 222, name: "苗寨拾光", desc: "木角藏岁月，挑花写流年", price: "18", unit: "元/本", image: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEV8_ZqOqskeuwSsHgqDTuBZkjQyrcYDAACWC8AAvQD0VUMWJ66mzIydTwE.jpg" }
     ];
 
-    // ===== 渲染函数（保持不变） =====
+    // ==================== 渲染商品 ====================
     function renderProducts() {
         const grid = document.getElementById('productGrid');
         grid.innerHTML = '';
@@ -315,36 +143,49 @@
                     </div>
                 </div>
             `;
-            card.addEventListener('click', () => showDetail(p));
+            card.addEventListener('click', () => openContactModal(p));
             grid.appendChild(card);
         });
     }
 
-    // ===== 详情弹窗（保持不变） =====
-    function showDetail(product) {
-        const overlay = document.createElement('div');
-        overlay.className = 'fixed inset-0 bg-black/40 z-20 flex items-end justify-center';
-        overlay.innerHTML = `
-            <div class="bg-white rounded-t-2xl w-full max-w-lg p-6 animate-slide-up">
-                <div class="flex justify-between items-start mb-4">
-                    <h2 class="text-lg font-bold">${product.name}</h2>
-                    <button onclick="this.closest('.fixed').remove()" class="text-gray-400 text-xl">&times;</button>
-                </div>
-                <img src="${product.image}" alt="${product.name}" class="w-full h-48 object-cover rounded-lg mb-4" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22%3E%3Crect fill=%22%23ddd%22 width=%22400%22 height=%22300%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2224%22%3E暂无图片%3C/text%3E%3C/svg%3E'" />
-                <p class="text-gray-600 text-sm mb-4">${product.desc}</p>
-                <div class="flex items-center justify-between">
-                    <span class="text-red-600 text-2xl font-bold">¥${product.price}</span>
-                    <span class="text-gray-400">/ ${product.unit}</span>
-                </div>
-                <button class="mt-6 w-full bg-green-600 text-white py-3 rounded-xl text-lg font-medium">联系购买</button>
-            </div>
-        `;
-        document.body.appendChild(overlay);
-        const style = document.createElement('style');
-        style.textContent = `@keyframes slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } } .animate-slide-up { animation: slide-up 0.3s ease-out; }`;
-        document.head.appendChild(style);
+    // ==================== 打开联系弹窗（传入商品对象） ====================
+    function openContactModal(product) {
+        // 填充商品信息
+        document.getElementById('modalProductImage').src = product.image;
+        document.getElementById('modalProductImage').alt = product.name;
+        document.getElementById('modalProductName').textContent = product.name;
+        document.getElementById('modalProductDesc').textContent = product.desc;
+        document.getElementById('modalProductPrice').textContent = `¥${product.price}`;
+        document.getElementById('modalProductUnit').textContent = `/ ${product.unit}`;
+
+        // 显示弹窗
+        document.getElementById('contactModal').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
     }
 
+    // ==================== 关闭弹窗 ====================
+    function closeContactModal() {
+        document.getElementById('contactModal').classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+
+    // 点击遮罩关闭
+    document.getElementById('contactModal').addEventListener('click', function(e) {
+        if (e.target === this) closeContactModal();
+    });
+
+    // ==================== 复制微信号 ====================
+    function copyWechat() {
+        const wechatId = 'nongchan888'; // ← 改成你的微信号
+        navigator.clipboard.writeText(wechatId).then(() => {
+            alert('微信号已复制，快去微信添加吧！');
+        }).catch(() => {
+            // 降级方案：提示手动复制
+            prompt('请长按复制微信号：', wechatId);
+        });
+    }
+
+    // ==================== 初始化 ====================
     renderProducts();
 </script>
 </body>
